@@ -5,6 +5,7 @@ xsim.dir/
 *.pb
 *.wdb
 *.str
+dfx_runtime.txt
 *.xsim
 
 # Vivado generated project files
