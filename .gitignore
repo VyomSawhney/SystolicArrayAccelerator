@@ -1,0 +1,17 @@
+# Vivado and XSim generated files
+xsim.dir/
+*.jou
+*.log
+*.pb
+*.wdb
+*.str
+*.xsim
+
+# Vivado generated project files
+.vivado/
+vivado/.Xil/
+
+# Editor and OS files
+.vscode/
+.DS_Store
+Thumbs.db
