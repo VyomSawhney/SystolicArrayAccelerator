@@ -12,6 +12,8 @@ module accelerator_tb#(
     logic signed [DATA_W-1:0] A_in [N];
     logic done;
     logic signed [ACC_W-1:0] out [N];
+    logic signed [DATA_W-1:0] activation [N][N];
+    logic signed [ACC_W-1:0] expected [N][N];
 
     int errors = 0;
     
@@ -40,7 +42,28 @@ module accelerator_tb#(
         weight[0][1] = 2;
         weight[1][0] = 3;
         weight[1][1] = 4;
-        A_in[0] = 5;
+
+        for (int row = 0; row < N; row++) begin
+            for (int col = 0; col < N; col++) begin
+                activation[row][col] = '0;
+                expected[row][col] = '0;
+            end
+        end
+
+        activation[0][0] = 5;
+        activation[0][1] = 6;
+        activation[1][0] = 7;
+        activation[1][1] = 8;
+
+        for (int row = 0; row < N; row++) begin
+            for (int col = 0; col < N; col++) begin
+                for (int k = 0; k < N; k++) begin
+                    expected[row][col] += activation[row][k] * weight[k][col];
+                end
+            end
+        end
+
+        A_in[0] = activation[0][0];
         A_in[1] = 0;
         
         @(posedge clk);
@@ -85,10 +108,10 @@ module accelerator_tb#(
         
         @(posedge clk);
         #1;
-        if(dut.array.out[0] == 23) begin
+        if(dut.array.out[0] === expected[0][0]) begin
             $display("C00 Pass");
         end else begin
-            $display("C00 Fail out[0]=%0d", dut.array.out[0]);
+            $display("C00 Fail expected=%0d got=%0d", expected[0][0], dut.array.out[0]);
             errors = errors + 1;
         end
        
@@ -98,19 +121,22 @@ module accelerator_tb#(
         
         @(posedge clk);
         #1;
-        if(dut.array.out[0] == 31 && dut.array.out[1] == 34) begin
+        if(dut.array.out[0] === expected[1][0] &&
+           dut.array.out[1] === expected[0][1]) begin
             $display("C10/C01 Pass");
         end else begin
-            $display("C10/C01 Fail out[0]=%0d out[1]=%0d", dut.array.out[0], dut.array.out[1]);
+            $display("C10/C01 Fail expected=(%0d,%0d) got=(%0d,%0d)",
+                     expected[1][0], expected[0][1], dut.array.out[0], dut.array.out[1]);
             errors = errors + 1;
         end
         
         @(posedge clk);
         #1;
-        if(dut.array.out[0] == 0 && dut.array.out[1] == 46) begin
+        if(dut.array.out[0] === '0 && dut.array.out[1] === expected[1][1]) begin
             $display("C11/Drain Pass");
         end else begin
-            $display("C11/Drain Fail out[0]=%0d out[1]=%0d", dut.array.out[0], dut.array.out[1]);
+            $display("C11/Drain Fail expected=(%0d,%0d) got=(%0d,%0d)",
+                     '0, expected[1][1], dut.array.out[0], dut.array.out[1]);
             errors = errors + 1;
         end
 
@@ -127,8 +153,9 @@ module accelerator_tb#(
 
         if(done != 1'b1) begin
             errors = errors + 1;
-        end else if(out[0] != 0 || out[1] != 46) begin
-            $display("Deskewed output: Fail out[0]=%0d out[1]=%0d", out[0], out[1]);
+        end else if(out[0] !== expected[1][0] || out[1] !== expected[1][1]) begin
+            $display("Deskewed output: Fail expected=(%0d,%0d) got=(%0d,%0d)",
+                     expected[1][0], expected[1][1], out[0], out[1]);
             errors = errors + 1;
         end else begin
             $display("Deskewed output: Pass");
