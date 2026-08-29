@@ -11,12 +11,13 @@ call xvlog -sv ^
     rtl\output_deskew_buffer.sv ^
     rtl\controller.sv ^
     rtl\accelerator.sv ^
-    tb\accelerator_tb.sv
+    tb\accelerator_tb.sv ^
+    tb\accelerator_sweep_tb.sv
 
 if errorlevel 1 exit /b 1
 
 echo Elaborating...
-call xelab accelerator_tb -s accelerator_sim
+call xelab accelerator_sweep_tb -s accelerator_sim
 
 if errorlevel 1 exit /b 1
 
