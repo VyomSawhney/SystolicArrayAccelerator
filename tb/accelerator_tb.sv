@@ -30,10 +30,34 @@ module accelerator_tb#(
         .done(done),
         .out(out)
     );
+
+    task automatic compute_ref_matrix(
+        input logic signed [DATA_W-1:0] act [N][N],
+        input logic signed [DATA_W-1:0] wgt [N][N],
+        output logic signed [ACC_W-1:0] golden [N][N]
+    );
+        int row, col, k;
+        logic signed [ACC_W-1:0] sum;
+
+        for (row = 0; row < N; row++) begin
+            for (col = 0; col < N; col++) begin
+                sum = '0;
+                for (k = 0; k < N; k++) begin
+                    sum += act[row][k] * wgt[k][col];
+                end
+                golden[row][col] = sum;
+            end
+        end
+    endtask
     
     always #5 clk = ~clk;
     
     initial begin
+        logic signed [DATA_W-1:0] rand_act [N][N];
+        logic signed [DATA_W-1:0] rand_wgt [N][N];
+        logic signed [ACC_W-1:0] rand_ref [N][N];
+        int trial;
+
         clk = 0;
         rst_n = 0;
         start = 0;
@@ -55,16 +79,10 @@ module accelerator_tb#(
         activation[1][0] = 7;
         activation[1][1] = 8;
 
-        for (int row = 0; row < N; row++) begin
-            for (int col = 0; col < N; col++) begin
-                for (int k = 0; k < N; k++) begin
-                    expected[row][col] += activation[row][k] * weight[k][col];
-                end
-            end
-        end
+        compute_ref_matrix(activation, weight, expected);
 
         A_in[0] = activation[0][0];
-        A_in[1] = 0;
+        A_in[1] = activation[0][1];
         
         @(posedge clk);
         #1;
@@ -161,8 +179,77 @@ module accelerator_tb#(
             $display("Deskewed output: Pass");
         end
 
+        for (trial = 0; trial < 1000; trial++) begin
+            for (int row = 0; row < N; row++) begin
+                for (int col = 0; col < N; col++) begin
+                    rand_act[row][col] = $signed($urandom_range(-8, 8));
+                    rand_wgt[row][col] = $signed($urandom_range(-8, 8));
+                end
+            end
+
+            for (int row = 0; row < N; row++) begin
+                for (int col = 0; col < N; col++) begin
+                    weight[row][col] = rand_wgt[row][col];
+                    activation[row][col] = rand_act[row][col];
+                end
+            end
+
+            compute_ref_matrix(activation, weight, rand_ref);
+
+            clk = 0;
+            rst_n = 0;
+            start = 0;
+            for (int i = 0; i < N; i++) begin
+                A_in[i] = '0;
+            end
+            @(posedge clk);
+            #1;
+
+            @(negedge clk);
+            rst_n = 1;
+            start = 1;
+            @(negedge clk);
+            start = 0;
+
+            wait(dut.load_en == 1);
+            @(posedge clk);
+            #1;
+
+            for (int row = 0; row < N; row++) begin
+                for (int col = 0; col < N; col++) begin
+                    A_in[col] = activation[row][col];
+                end
+                @(posedge clk);
+                #1;
+            end
+
+            @(negedge clk);
+            for (int i = 0; i < N; i++) begin
+                A_in[i] = 0;
+            end
+
+            fork
+                wait(done == 1);
+                begin
+                    #1000;
+                    $display("Random trial %0d: Timeout: done was not asserted", trial);
+                    errors = errors + 1;
+                end
+            join_any
+            disable fork;
+
+            if(done != 1'b1) begin
+                errors = errors + 1;
+            end else if (out[0] !== rand_ref[1][0] || out[1] !== rand_ref[1][1]) begin
+                $display("Random trial %0d: FAIL expected=(%0d,%0d) got=(%0d,%0d)",
+                         trial, rand_ref[1][0], rand_ref[1][1], out[0], out[1]);
+                errors = errors + 1;
+                $fatal(1);
+            end
+        end
+
         if(errors == 0) begin
-            $display("TEST PASSED");
+            $display("TEST PASSED (deterministic + %0d randomized trials)", trial);
             $finish;
         end else begin
             $display("TEST FAILED (%0d errors)", errors);
