@@ -14,8 +14,11 @@ module pe #(
     output logic signed [ACC_W-1:0] psum_out,
     output logic signed [DATA_W-1:0] a_out
 );
-    if (ACC_W < 2*DATA_W)
-        $error("ACC_W=%0d too narrow for DATA_W=%0d, need %0d", ACC_W, DATA_W, 2*DATA_W);
+    generate
+        if (ACC_W < 2*DATA_W) begin : gen_invalid_width
+            initial $error("ACC_W=%0d too narrow for DATA_W=%0d, need %0d", ACC_W, DATA_W, 2*DATA_W);
+        end
+    endgenerate
 
     logic signed [DATA_W-1:0] weight_reg;
     always_ff @(posedge clk or negedge rst_n) begin

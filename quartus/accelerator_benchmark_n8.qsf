@@ -1,0 +1,15 @@
+set_global_assignment -name FAMILY "Cyclone V"
+set_global_assignment -name DEVICE 5CSEMA5F31C6
+set_global_assignment -name TOP_LEVEL_ENTITY accelerator_benchmark_top
+set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files_n8
+set_global_assignment -name VERILOG_MACRO "BENCH_N=8"
+set_global_assignment -name SYSTEMVERILOG_FILE ../rtl/pe.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../rtl/input_skew_buffer.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../rtl/systolic_array.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../rtl/output_deskew_buffer.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../rtl/controller.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../rtl/accelerator.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../rtl/accelerator_benchmark_top.sv
+set_global_assignment -name SDC_FILE ../constraints/accelerator_benchmark.sdc
+
+set_global_assignment -name LAST_QUARTUS_VERSION "25.1std.0 Lite Edition"

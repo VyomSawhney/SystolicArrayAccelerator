@@ -34,9 +34,12 @@ module output_deskew_buffer#(
     end
     
     assign data_out[N-1] = data_in[N-1];
-    for(genvar y = 0; y<N-1; y++) begin
-        assign data_out[y] = delay_regs[y][N-2-y];
-    end
+    genvar deskew_idx;
+    generate
+        for (deskew_idx = 0; deskew_idx < N-1; deskew_idx = deskew_idx + 1) begin : gen_deskew_outputs
+            assign data_out[deskew_idx] = delay_regs[deskew_idx][N-2-deskew_idx];
+        end
+    endgenerate
 
 
 endmodule

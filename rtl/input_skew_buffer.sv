@@ -33,8 +33,11 @@ module input_skew_buffer#(
     end
     
     assign data_out[0] = data_in[0];
-    for(genvar y = 1; y<N; y++) begin
-         assign data_out[y] = delay_regs[y][y-1];
-    end
+    genvar skew_idx;
+    generate
+        for (skew_idx = 1; skew_idx < N; skew_idx = skew_idx + 1) begin : gen_skew_outputs
+            assign data_out[skew_idx] = delay_regs[skew_idx][skew_idx-1];
+        end
+    endgenerate
     
 endmodule

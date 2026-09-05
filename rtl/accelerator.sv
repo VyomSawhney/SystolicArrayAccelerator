@@ -13,8 +13,11 @@ module accelerator#(
     output logic done,
     output logic signed [ACC_W-1:0] out [N]
 );
-    if (ACC_W < 2*DATA_W + $clog2(N))
-        $error("ACC_W=%0d too narrow for DATA_W=%0d N=%0d, need %0d", ACC_W, DATA_W, N, 2*DATA_W + $clog2(N));
+    generate
+        if (ACC_W < 2*DATA_W + $clog2(N)) begin : gen_invalid_width
+            initial $error("ACC_W=%0d too narrow for DATA_W=%0d N=%0d, need %0d", ACC_W, DATA_W, N, 2*DATA_W + $clog2(N));
+        end
+    endgenerate
 
     logic load_en;
     logic skew_en;
@@ -37,9 +40,12 @@ module accelerator#(
         .deskew_en(deskew_en),
         .done(done)
     );
-    for(genvar i = 0; i<N; i++) begin
-        assign skew_in[i] = drain_en ? '0 : A_in[i];
-    end
+    genvar input_idx;
+    generate
+        for (input_idx = 0; input_idx < N; input_idx = input_idx + 1) begin : gen_skew_inputs
+            assign skew_in[input_idx] = drain_en ? '0 : A_in[input_idx];
+        end
+    endgenerate
     input_skew_buffer#(
         .DATA_W(DATA_W),
         .N(N)

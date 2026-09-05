@@ -12,6 +12,20 @@ dfx_runtime.txt
 .vivado/
 vivado/.Xil/
 
+# Quartus generated databases, outputs, and reports
+quartus/db/
+quartus/incremental_db/
+quartus/output_files/
+quartus/output_files_n2/
+quartus/output_files_n4/
+quartus/output_files_n8/
+quartus/*.rpt
+quartus/*.smsg
+quartus/*.summary
+quartus/*.pin
+quartus/*.qws
+quartus/c5_pin_model_dump.txt
+
 # Editor and OS files
 .vscode/
 .DS_Store
