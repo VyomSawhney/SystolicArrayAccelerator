@@ -24,6 +24,14 @@ The RTL is parameterized by `N`, `DATA_W`, and `ACC_W`. `ACC_W` must be at least
 | `vivado/`, `sim/` | Vivado and simulation project files |
 | `python/` | Python utilities |
 
+## Tiled GEMM
+
+`rtl/tiled_gemm.sv` provides a matrix-level interface for arbitrary `M x K`
+by `K x P` signed matrix multiplication. It tiles the matrices into
+`TILE_N x TILE_N` operations, zero-pads partial edge tiles, and exposes
+cycle and useful-MAC counters. The existing `accelerator.sv` remains available
+as the tile engine used by the Quartus benchmarks.
+
 ## Simulation
 
 Run from a Windows command prompt or PowerShell with the Xilinx Vivado simulator commands `xvlog`, `xelab`, and `xsim` available on `PATH`:
@@ -33,6 +41,26 @@ scripts\run_accelerator_sim.bat
 ```
 
 The script compiles the RTL and testbenches, elaborates `accelerator_sweep_tb`, and runs the sweep. The sweep instantiates accelerator testbenches for `N=2, 3, 4, 8, 16` with 16-bit data.
+The same script also checks a non-square `3 x 5` by `5 x 4` GEMM for
+`TILE_N=2`, `4`, and `8`.
+
+The UVM environment runs 1,000 randomized transactions and is configurable
+through the `ACCEL_N` environment variable:
+
+```bat
+scripts\run_accelerator_uvm_n2.bat
+```
+
+The default is `N=2`; for example, `set ACCEL_N=4` before running the same
+script verifies the N=4 configuration. Its source is under `tb/uvm/`.
+
+The directed corner-case UVM test can be run with:
+
+```bat
+scripts\run_accelerator_uvm_n2_corner.bat
+```
+
+The corner-case script uses the same `ACCEL_N` setting.
 
 ## Quartus Benchmarks
 
