@@ -62,6 +62,56 @@ scripts\run_accelerator_uvm_n2_corner.bat
 
 The corner-case script uses the same `ACCEL_N` setting.
 
+## Software-visible subsystem
+
+`rtl/software_accelerator.sv` wraps the tiled GEMM engine with:
+
+- Avalon-MM control and status registers
+- Input and output on-chip matrix buffers
+- DMA-style ready/valid streams for loading A/B and reading C
+- Cycle and useful-MAC performance counters
+
+The default demonstration configuration is `M=3`, `K=5`, `P=4`, and
+`TILE_N=2`. Its register map uses word addresses:
+
+| Address | Name | Read | Write |
+| ---: | --- | --- | --- |
+| `0x0` | CONTROL | — | bit 0 starts GEMM; bit 1 clears done |
+| `0x1` | STATUS | busy, done, load-A, load-B, output-valid | — |
+| `0x2` | DIMENSIONS | M, K, P, TILE_N | — |
+| `0x3` | CYCLES | measured cycle count | — |
+| `0x4` | MACS | useful MAC count | — |
+| `0x5` | DMA_MODE | current mode | 1=load A, 2=load B, 3=read C |
+| `0x6` | DMA_DATA_IN | — | write one input stream word |
+| `0x7` | DMA_DATA_OUT_LO | read output bits 31:0 | — |
+| `0x8` | DMA_DATA_OUT_HI | read output bits 34:32 | — |
+
+Use the DMA input stream after selecting mode 1 or 2. Select mode 3 after
+completion and consume `M*P` output values using ready/valid handshaking.
+For a memory-mapped CPU, write input words to `0x6` and read output words
+from `0x7` followed by `0x8`; these accesses are bridged internally to the
+same stream protocol. The two reads refer to the same output word, and the
+word advances only when `0x7` is read.
+
+The RTL module is ready to attach to an Avalon-MM interconnect, but the
+existing `de1_soc_accel.qsf` still builds the original pushbutton demo.
+After integrating `software_accelerator` into a bus-connected top level, the
+peripheral base address must be supplied to the Linux transport.
+
+The standalone RTL regression is:
+
+```bat
+scripts\run_software_accelerator_sim.bat
+```
+
+The transport-independent Python reference model and driver are in
+`python/software_accelerator.py`. The included test uses a fake register/DMA
+transport to verify host-side flattening and FPGA-style result comparison:
+
+```bat
+python -m pytest python\test_software_accelerator.py -q
+```
+
 ## Quartus Benchmarks
 
 The benchmark projects target the Cyclone V `5CSEMA5F31C6` device and build `N=2`, `N=4`, and `N=8` configurations. The script compiles each project and runs Quartus timing analysis:
