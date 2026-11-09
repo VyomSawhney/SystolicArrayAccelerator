@@ -13,12 +13,14 @@ call xvlog -sv ^
     rtl\accelerator.sv ^
     rtl\tiled_gemm.sv ^
     rtl\software_accelerator.sv ^
-    tb\software_accelerator_tb.sv
+    rtl\int8_projection.sv ^
+    tb\software_accelerator_tb.sv ^
+    tb\int8_projection_tb.sv
 
 if errorlevel 1 exit /b 1
 
 echo Elaborating...
-call xelab software_accelerator_tb -s software_accelerator_sim --timescale 1ns/1ps
+call xelab software_accelerator_tb int8_projection_tb -s software_accelerator_sim --timescale 1ns/1ps
 
 if errorlevel 1 exit /b 1
 

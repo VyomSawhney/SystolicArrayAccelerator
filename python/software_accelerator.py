@@ -13,6 +13,40 @@ from typing import Callable, Iterable, Sequence
 Matrix = list[list[int]]
 
 
+def clamp_int8(value: int, relu: bool = False) -> int:
+    """Apply optional ReLU and signed INT8 saturation."""
+    if relu and value < 0:
+        return 0
+    return max(-128, min(127, value))
+
+
+def quantized_projection(
+    activation: Sequence[Sequence[int]],
+    weight: Sequence[Sequence[int]],
+    bias: Sequence[int],
+    requant_shift: int,
+    relu: bool = False,
+) -> Matrix:
+    """Reference X*W+bias with arithmetic requantization to signed INT8."""
+    accum = matmul_reference(activation, weight)
+    if len(bias) != len(weight[0]):
+        raise ValueError("bias width does not match projection output width")
+    return [
+        [
+            clamp_int8((accum[row][col] + bias[col]) >> requant_shift, relu)
+            for col in range(len(weight[0]))
+        ]
+        for row in range(len(activation))
+    ]
+
+
+def export_int8_matrix(matrix: Sequence[Sequence[int]]) -> bytes:
+    """Serialize a signed INT8 matrix in row-major two's-complement form."""
+    if any(value < -128 or value > 127 for row in matrix for value in row):
+        raise ValueError("matrix contains a value outside signed INT8 range")
+    return bytes(value & 0xFF for row in matrix for value in row)
+
+
 def matmul_reference(a: Sequence[Sequence[int]],
                      b: Sequence[Sequence[int]]) -> Matrix:
     """Compute signed integer GEMM with explicit dimension validation."""

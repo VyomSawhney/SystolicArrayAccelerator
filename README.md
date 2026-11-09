@@ -62,6 +62,34 @@ scripts\run_accelerator_uvm_n2_corner.bat
 
 The corner-case script uses the same `ACCEL_N` setting.
 
+## Phase 3: INT8 transformer projection
+
+`rtl/int8_projection.sv` adds a quantized transformer-style linear projection:
+
+```text
+INT8 activations x INT8 weights + INT32 bias
+        -> arithmetic requantization
+        -> optional ReLU
+        -> signed INT8 saturation
+```
+
+The existing tiled GEMM engine uses a weight-stationary PE dataflow: each PE
+loads and retains its weight while activations and partial sums move through
+the array. The projection wrapper then performs bias addition and
+post-processing in RTL. The directed regression covers negative values,
+arithmetic shifts, ReLU behavior, saturation, and useful-MAC accounting:
+
+```bat
+scripts\run_software_accelerator_sim.bat
+```
+
+The Python reference and signed INT8 exporter are in
+`python/software_accelerator.py`; their tests are run with:
+
+```bat
+python -m pytest python\test_software_accelerator.py python\test_int8_projection.py -q
+```
+
 ## Software-visible subsystem
 
 `rtl/software_accelerator.sv` wraps the tiled GEMM engine with:

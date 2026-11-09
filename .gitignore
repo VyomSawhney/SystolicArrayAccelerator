@@ -30,3 +30,6 @@ quartus/c5_pin_model_dump.txt
 .vscode/
 .DS_Store
 Thumbs.db
+
+# Python test and interpreter caches
+python/__pycache__/
